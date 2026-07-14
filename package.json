@@ -3,7 +3,9 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vue-tsc && vite build"
+        "build": "vue-tsc && vite build",
+        "format": "prettier --write resources/js",
+        "format:check": "prettier --check resources/js"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^2.3.27",
@@ -11,6 +13,7 @@
         "@vitejs/plugin-vue": "^5.0.0",
         "axios": "^1.6.4",
         "laravel-vite-plugin": "^1.0.0",
+        "prettier": "^3.9.5",
         "tailwindcss": "^4.3.2",
         "typescript": "^5.0.2",
         "vite": "^5.0.0",
