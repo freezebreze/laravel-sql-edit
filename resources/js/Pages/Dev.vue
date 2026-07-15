@@ -1,14 +1,61 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
+import { basicSetup } from 'codemirror';
+import { sql as sqlLanguage } from '@codemirror/lang-sql';
+import { EditorView, placeholder } from '@codemirror/view';
 
-const sql = ref('SELECT * FROM users LIMIT 10;');
+const DEFAULT_SQL = 'SELECT * FROM users LIMIT 10;';
+const sql = ref(DEFAULT_SQL);
 const executing = ref(false);
 const error = ref('');
 
 const data = ref([]);
+const editorElement = ref<HTMLElement | null>(null);
+let editorView: EditorView | null = null;
+
+onMounted(() => {
+    if (!editorElement.value) return;
+
+    editorView = new EditorView({
+        doc: sql.value,
+        extensions: [
+            basicSetup,
+            sqlLanguage(),
+            placeholder('请输入 SQL 查询语句...'),
+            EditorView.lineWrapping,
+            EditorView.updateListener.of((update) => {
+                if (update.docChanged) {
+                    sql.value = update.state.doc.toString();
+                }
+            }),
+            EditorView.theme({
+                '&': {
+                    minHeight: '12rem',
+                    fontSize: '0.875rem',
+                },
+                '.cm-scroller': {
+                    minHeight: '12rem',
+                    fontFamily:
+                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                },
+                '.cm-content': {
+                    padding: '0.75rem 0',
+                },
+                '&.cm-focused': {
+                    outline: 'none',
+                },
+            }),
+        ],
+        parent: editorElement.value,
+    });
+});
+
+onBeforeUnmount(() => {
+    editorView?.destroy();
+});
 
 const executeSql = async () => {
     if (!sql.value.trim() || executing.value) return;
@@ -29,6 +76,28 @@ const executeSql = async () => {
         executing.value = false;
     }
 };
+
+const resetInput = () => {
+    if (executing.value) return;
+    data.value = [];
+
+    error.value = '';
+
+    if (!editorView) {
+        sql.value = DEFAULT_SQL;
+        return;
+    }
+
+    editorView.dispatch({
+        changes: {
+            from: 0,
+            to: editorView.state.doc.length,
+            insert: DEFAULT_SQL,
+        },
+        selection: { anchor: DEFAULT_SQL.length },
+    });
+    editorView.focus();
+};
 </script>
 
 <template>
@@ -40,25 +109,34 @@ const executeSql = async () => {
                 <div
                     class="mb-4 space-y-3 bg-white p-4 shadow-sm sm:rounded-lg"
                 >
-                    <UTextarea
-                        v-model="sql"
-                        :rows="8"
-                        autoresize
-                        placeholder="请输入 SQL 查询语句..."
-                        class="w-full"
-                    />
+                    <div
+                        ref="editorElement"
+                        class="overflow-hidden rounded-md border border-gray-300 bg-white focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500"
+                    ></div>
 
                     <div class="flex items-center justify-between gap-4">
                         <p class="text-sm text-gray-500"></p>
-
-                        <UButton
-                            icon="i-lucide-play"
-                            :loading="executing"
-                            :disabled="!sql.trim()"
-                            @click="executeSql"
-                        >
-                            Execute
-                        </UButton>
+                        <div>
+                            <UButton
+                                color="neutral"
+                                variant="outline"
+                                icon="i-lucide-rotate-ccw"
+                                :loading="executing"
+                                :disabled="executing || sql === DEFAULT_SQL"
+                                @click="resetInput"
+                                class="mr-2"
+                            >
+                                Reset
+                            </UButton>
+                            <UButton
+                                icon="i-lucide-play"
+                                :loading="executing"
+                                :disabled="!sql.trim()"
+                                @click="executeSql"
+                            >
+                                Execute
+                            </UButton>
+                        </div>
                     </div>
 
                     <p v-if="error" class="text-sm text-red-600">
@@ -67,7 +145,15 @@ const executeSql = async () => {
                 </div>
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <UTable :data="data" class="flex-1" />
+                    <UTable
+                        :data="data"
+                        :ui="{
+                            base: 'table-fixed',
+                            th: 'w-48 min-w-48 max-w-48 truncate',
+                            td: 'w-48 min-w-48 max-w-48 truncate whitespace-nowrap',
+                        }"
+                        class="flex-1"
+                    />
                 </div>
             </div>
         </div>

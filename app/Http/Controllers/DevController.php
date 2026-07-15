@@ -37,7 +37,7 @@ class DevController extends Controller
             }
 
             if (! preg_match('/^select\b/i', $sql)) {
-                $errorMessage = '仅支持 SELECT 查询。';
+                $errorMessage = '仅支持 SELECT 查询 或 检查你输入的sql语句是否正确。';
 
                 return response()->json([
                     'message' => $errorMessage,
