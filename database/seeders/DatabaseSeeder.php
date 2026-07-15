@@ -11,7 +11,10 @@ class DatabaseSeeder extends Seeder
      * Seed the application's database.
      */
     public function run(): void
-    {
+    {   
+        $this->call([
+            SqlLogSeeder::class,
+        ]);
         User::updateOrCreate(
             ['email' => 'test@email.com'],
             [

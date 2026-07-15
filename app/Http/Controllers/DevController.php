@@ -45,7 +45,6 @@ class DevController extends Controller
                     'message' => $errorMessage,
                 ], 422);
             }
-            
             $query = preg_replace('/;\s*$/', '', $sql);
             $page = (int) $request->input('page', 1);
             $perPage = (int) $request->input('per_page', 20);
