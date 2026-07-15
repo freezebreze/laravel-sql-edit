@@ -16,6 +16,8 @@ export default defineConfig({
                 },
             },
         }),
-        ui()
+        ui({
+            router: 'inertia',
+        }),
     ],
 });
