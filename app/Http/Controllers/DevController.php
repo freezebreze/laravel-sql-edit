@@ -24,6 +24,8 @@ class DevController extends Controller
 
         $validator = Validator::make($request->all(), [
             'sql' => ['required', 'string', 'max:100000'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'in:10,20,50,100'],
         ]);
 
         try {
@@ -43,11 +45,28 @@ class DevController extends Controller
                     'message' => $errorMessage,
                 ], 422);
             }
+            
+            $query = preg_replace('/;\s*$/', '', $sql);
+            $page = (int) $request->input('page', 1);
+            $perPage = (int) $request->input('per_page', 20);
+            $offset = ($page - 1) * $perPage;
 
-            $rows = DB::select($sql);
+            $countRow = DB::selectOne(
+                "SELECT COUNT(*) AS total FROM ({$query}) AS query_result"
+            );
+            $total = (int) $countRow->total;
+
+            $rows = DB::select(
+                "SELECT * FROM ({$query}) AS query_result LIMIT {$perPage} OFFSET {$offset}"
+            );
 
             return response()->json([
                 'data' => array_map(static fn (object $row): array => (array) $row, $rows),
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                ],
             ]);
         } catch (Throwable $exception) {
             $errorMessage = $exception->getMessage();

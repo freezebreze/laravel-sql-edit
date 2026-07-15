@@ -7,12 +7,15 @@ import { basicSetup } from 'codemirror';
 import { sql as sqlLanguage } from '@codemirror/lang-sql';
 import { EditorView, placeholder } from '@codemirror/view';
 
-const DEFAULT_SQL = 'SELECT * FROM users LIMIT 10;';
+const DEFAULT_SQL = 'SELECT * FROM sql_log;';
 const sql = ref(DEFAULT_SQL);
 const executing = ref(false);
 const error = ref('');
 
-const data = ref([]);
+const data = ref<Record<string, unknown>[]>([]);
+const page = ref(1);
+const perPage = ref(10);
+const total = ref(0);
 const editorElement = ref<HTMLElement | null>(null);
 let editorView: EditorView | null = null;
 
@@ -57,7 +60,7 @@ onBeforeUnmount(() => {
     editorView?.destroy();
 });
 
-const executeSql = async () => {
+const loadPage = async (requestedPage: number) => {
     if (!sql.value.trim() || executing.value) return;
 
     executing.value = true;
@@ -66,9 +69,13 @@ const executeSql = async () => {
     try {
         const response = await axios.post(route('dev.execute'), {
             sql: sql.value,
+            page: requestedPage,
+            per_page: perPage.value,
         });
 
         data.value = response.data.data;
+        page.value = response.data.pagination.page;
+        total.value = response.data.pagination.total;
     } catch (exception: any) {
         error.value =
             exception.response?.data?.message ?? 'SQL 执行失败，请稍后重试。';
@@ -77,9 +84,15 @@ const executeSql = async () => {
     }
 };
 
+const executeSql = () => loadPage(1);
+
+const changePage = (newPage: number) => loadPage(newPage);
+
 const resetInput = () => {
     if (executing.value) return;
     data.value = [];
+    page.value = 1;
+    total.value = 0;
 
     error.value = '';
 
@@ -153,6 +166,16 @@ const resetInput = () => {
                             td: 'w-48 min-w-48 max-w-48 truncate whitespace-nowrap',
                         }"
                         class="flex-1"
+                    />
+                </div>
+                <div class="bg-white flex justify-center mt-4">
+                    <UPagination
+                        v-if="total > 0"
+                        :page="page"
+                        :total="total"
+                        :items-per-page="perPage"
+                        :disabled="executing"
+                        @update:page="changePage"
                     />
                 </div>
             </div>

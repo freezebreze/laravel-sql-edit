@@ -16,6 +16,15 @@ trait CreatesApplication
 
         $app->make(Kernel::class)->bootstrap();
 
+        $connection = config('database.default');
+        $database = config("database.connections.{$connection}.database");
+
+        if ($connection !== 'sqlite' || $database !== ':memory:') {
+            throw new \RuntimeException(
+                'Tests are only allowed to use an in-memory SQLite database.'
+            );
+        }
+
         return $app;
     }
 }
