@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DevController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,6 +18,11 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route(auth()->check() ? 'dashboard' : 'login');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/dev', [DevController::class, 'index'])->name('dev');
+    Route::post('/dev/execute', [DevController::class, 'execute'])->name('dev.execute');
 });
 
 Route::get('/dashboard', function () {
